@@ -142,6 +142,7 @@ const orderIdEl = document.getElementById("orderId");
 const pixAmount = document.getElementById("pixAmount");
 const pixCode = document.getElementById("pixCode");
 const pixKeyDisplay = document.getElementById("pixKeyDisplay");
+const checkoutError = document.getElementById("checkoutError");
 const pixQrCode = document.getElementById("pixQrCode");
 
 function formatMoney(amount) {
@@ -317,6 +318,7 @@ function closeCart() {
 function openCheckout() {
   if (cart.length === 0) return;
   closeCart();
+  clearCheckoutError();
   checkoutModal.hidden = false;
   document.body.style.overflow = "hidden";
   updateAddressField();
@@ -333,36 +335,42 @@ function closeCheckout() {
 function openPixPayment(order) {
   pendingOrder = order;
 
-  const payload = generatePixPayload({
-    key: PIX_CONFIG.key,
-    merchantName: PIX_CONFIG.merchantName,
-    merchantCity: PIX_CONFIG.merchantCity,
-    amount: order.total,
-    txid: order.id,
-  });
+  let payload;
+  try {
+    payload = generatePixPayload({
+      key: PIX_CONFIG.key,
+      merchantName: PIX_CONFIG.merchantName,
+      merchantCity: PIX_CONFIG.merchantCity,
+      amount: order.total,
+      txid: order.id,
+    });
+  } catch (error) {
+    console.error("Erro ao gerar código PIX:", error);
+    showCheckoutError("Não foi possível gerar o PIX. Verifique a configuração da chave PIX.");
+    return;
+  }
 
   pixAmount.textContent = formatMoney(order.total);
   pixCode.value = payload;
   pixKeyDisplay.textContent = PIX_CONFIG.key;
 
-  QRCode.toCanvas(
-    pixQrCode,
-    payload,
-    {
-      width: 220,
-      margin: 1,
-      color: { dark: "#000000", light: "#ffffff" },
-    },
-    (error) => {
-      if (error) {
-        console.error("Erro ao gerar QR Code PIX:", error);
-      }
-    }
-  );
-
   checkoutModal.hidden = true;
   pixModal.hidden = false;
   document.body.style.overflow = "hidden";
+
+  renderPixQrCode(pixQrCode, payload);
+}
+
+function showCheckoutError(message) {
+  if (!checkoutError) return;
+  checkoutError.textContent = message;
+  checkoutError.hidden = false;
+}
+
+function clearCheckoutError() {
+  if (!checkoutError) return;
+  checkoutError.textContent = "";
+  checkoutError.hidden = true;
 }
 
 function closePix() {
@@ -508,17 +516,33 @@ checkoutForm.addEventListener("change", (event) => {
 
 checkoutForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  clearCheckoutError();
 
   const formData = new FormData(checkoutForm);
   const orderType = formData.get("orderType");
+  const name = String(formData.get("name") || "").trim();
+  const phone = String(formData.get("phone") || "").trim();
+  const address = String(formData.get("address") || "").trim();
+
+  if (!name || !phone) {
+    showCheckoutError("Preencha nome e telefone para continuar.");
+    return;
+  }
+
+  if (orderType === "delivery" && !address) {
+    showCheckoutError("Informe o endereço de entrega para continuar.");
+    document.querySelector('input[name="address"]')?.focus();
+    return;
+  }
+
   const order = {
     id: generateOrderId(),
     createdAt: new Date().toISOString(),
     type: orderType,
     customer: {
-      name: formData.get("name"),
-      phone: formData.get("phone"),
-      address: orderType === "delivery" ? formData.get("address") : null,
+      name,
+      phone,
+      address: orderType === "delivery" ? address : null,
       notes: formData.get("notes") || "",
     },
     items: cart.map((line) => {

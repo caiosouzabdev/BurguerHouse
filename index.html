@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 </head>
 <body>
   <header class="header">
@@ -189,6 +189,8 @@
           <textarea name="notes" rows="3" placeholder="Sem cebola, molho extra, código do portão…"></textarea>
         </label>
 
+        <p class="form-error" id="checkoutError" hidden></p>
+
         <div class="checkout-total">
           <span>Total do pedido</span>
           <strong id="checkoutTotal">R$ 0,00</strong>
@@ -215,8 +217,8 @@
         <strong id="pixAmount">R$ 0,00</strong>
       </div>
 
-      <div class="pix-qr-wrap">
-        <canvas id="pixQrCode" aria-label="QR Code PIX"></canvas>
+      <div class="pix-qr-wrap" id="pixQrWrap">
+        <div id="pixQrCode" aria-label="QR Code PIX"></div>
       </div>
 
       <div class="pix-copy">
