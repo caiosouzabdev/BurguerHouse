@@ -1,0 +1,18 @@
+#!/bin/sh
+# Runs unit tests before every commit. Skip with: git commit --no-verify
+
+set -e
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+. "$ROOT/scripts/find-node.sh"
+
+NODE="$(find_node)" || {
+  echo "pre-commit: Node.js not found. Install Node.js or use git commit --no-verify"
+  exit 1
+}
+
+echo "Running unit tests..."
+"$NODE" scripts/run-tests.mjs
+echo "All tests passed."

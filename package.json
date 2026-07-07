@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/pix.test.js tests/order.test.js"
+    "test": "node scripts/run-tests.mjs",
+    "setup-hooks": "git config core.hooksPath .githooks"
   },
   "engines": {
     "node": ">=20"

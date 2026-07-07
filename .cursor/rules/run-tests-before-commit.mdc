@@ -1,0 +1,19 @@
+---
+description: Run unit tests locally before every git commit in burger-house
+alwaysApply: true
+---
+
+# Run tests before committing
+
+Before creating any git commit in this project:
+
+1. Run tests locally first — use whichever works on the machine:
+   - `./scripts/test.sh` (Git Bash / macOS / Linux)
+   - `.\scripts\test.ps1` (PowerShell)
+   - `scripts\test.bat` (CMD)
+   - `npm test` (only if npm is on PATH)
+2. Only commit if all 20 tests pass.
+3. If tests fail, fix them first — do not commit broken code.
+4. Do not rely on GitHub Actions as the first check; local tests must pass first.
+
+Install git hooks once: `./scripts/setup-hooks.sh` or `.\scripts\setup-hooks.ps1`
