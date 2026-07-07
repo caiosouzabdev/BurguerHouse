@@ -54,7 +54,7 @@ describe("order calculations", () => {
   });
 
   it("calculates order total", () => {
-    assert.equal(calculateTotal(20, "delivery", 3.99, 25), 23.99);
+    assert.ok(Math.abs(calculateTotal(20, "delivery", 3.99, 25) - 23.99) < 0.001);
     assert.equal(calculateTotal(30, "delivery", 3.99, 25), 30);
     assert.equal(calculateTotal(30, "pickup", 3.99, 25), 30);
   });

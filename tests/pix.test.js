@@ -41,7 +41,7 @@ describe("PIX core", () => {
     });
 
     assert.ok(payload.startsWith("000201"));
-    assert.match(payload, /540636\.89/);
+    assert.match(payload, /540536\.89/);
     assert.ok(payload.includes("csb.dev@outlook.com.br"));
     assert.ok(isValidPixPayload(payload));
   });
