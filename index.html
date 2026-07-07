@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Burger House — Peça Online</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="container header__inner">
+      <a href="#" class="logo">
+        <span class="logo__icon">🍔</span>
+        <span class="logo__text">Burger House</span>
+      </a>
+      <nav class="nav">
+        <a href="#menu">Cardápio</a>
+        <a href="#about">Sobre</a>
+        <a href="#contact">Contato</a>
+      </nav>
+      <button class="cart-btn" id="openCartBtn" aria-label="Abrir carrinho">
+        <span class="cart-btn__icon">🛒</span>
+        <span class="cart-btn__label">Carrinho</span>
+        <span class="cart-btn__count" id="cartCount">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero__inner">
+        <div class="hero__content">
+          <p class="hero__eyebrow">Fresco · Na chapa · Entrega rápida</p>
+          <h1>Smash burgers feitos na hora</h1>
+          <p class="hero__text">
+            Discos moldados à mão, pães brioche tostados e molhos da casa.
+            Peça para entrega ou retirada em poucos minutos.
+          </p>
+          <div class="hero__actions">
+            <a href="#menu" class="btn btn--primary">Ver cardápio</a>
+            <a href="#contact" class="btn btn--ghost">Onde estamos</a>
+          </div>
+          <div class="hero__badges">
+            <span>🚚 Entrega grátis acima de R$ 25</span>
+            <span>⏱️ Pronto em 20–30 min</span>
+          </div>
+        </div>
+        <div class="hero__visual" aria-hidden="true">
+          <div class="hero__burger">🍔</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="menu" id="menu">
+      <div class="container">
+        <div class="section-head">
+          <h2>Nossos hambúrgueres</h2>
+          <p>Todos os burgers acompanham batata frita. Adicione extras no checkout.</p>
+        </div>
+
+        <div class="category-tabs" id="categoryTabs" role="tablist" aria-label="Categorias do cardápio">
+          <button class="category-tab active" data-category="burgers" role="tab" aria-selected="true">Burgers</button>
+          <button class="category-tab" data-category="sides" role="tab" aria-selected="false">Acompanhamentos</button>
+          <button class="category-tab" data-category="drinks" role="tab" aria-selected="false">Bebidas</button>
+        </div>
+
+        <div class="menu-grid" id="menuGrid"></div>
+      </div>
+    </section>
+
+    <section class="about" id="about">
+      <div class="container about__inner">
+        <div>
+          <h2>Por que a Burger House?</h2>
+          <p>
+            Moemos nossa carne fresca todos os dias e achatamos cada disco em uma
+            chapa quente para aquela borda crocante e miolo suculento. Cada pedido
+            é montado na hora — nunca fica esperando em vitrine.
+          </p>
+        </div>
+        <ul class="about__stats">
+          <li><strong>100%</strong><span>Carne Angus</span></li>
+          <li><strong>4,9★</strong><span>Avaliação dos clientes</span></li>
+          <li><strong>12</strong><span>Opções de molho</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="contact" id="contact">
+      <div class="container contact__inner">
+        <div>
+          <h2>Visite ou ligue</h2>
+          <p>Rua da Chapa, 123 — Centro</p>
+          <p>Aberto todos os dias das 11h às 23h</p>
+          <p><a href="tel:+5511999999999">(11) 99999-9999</a></p>
+        </div>
+        <div class="contact__hours">
+          <h3>Áreas de entrega</h3>
+          <p>Centro, Jardins e Pinheiros — taxa de R$ 3,99 (grátis acima de R$ 25).</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 Burger House. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- Cart drawer -->
+  <div class="overlay" id="cartOverlay" hidden></div>
+  <aside class="cart-drawer" id="cartDrawer" aria-label="Carrinho de compras" hidden>
+    <div class="cart-drawer__head">
+      <h2>Seu pedido</h2>
+      <button class="icon-btn" id="closeCartBtn" aria-label="Fechar carrinho">&times;</button>
+    </div>
+    <div class="cart-drawer__body" id="cartItems">
+      <p class="cart-empty">Seu carrinho está vazio. Adicione um burger para começar!</p>
+    </div>
+    <div class="cart-drawer__foot" id="cartFooter" hidden>
+      <div class="cart-summary">
+        <div class="cart-summary__row">
+          <span>Subtotal</span>
+          <span id="cartSubtotal">R$ 0,00</span>
+        </div>
+        <div class="cart-summary__row" id="deliveryFeeRow" hidden>
+          <span>Taxa de entrega</span>
+          <span id="cartDeliveryFee">R$ 0,00</span>
+        </div>
+        <div class="cart-summary__row cart-summary__row--total">
+          <span>Total</span>
+          <span id="cartTotal">R$ 0,00</span>
+        </div>
+      </div>
+      <button class="btn btn--primary btn--full" id="checkoutBtn">Finalizar pedido</button>
+    </div>
+  </aside>
+
+  <!-- Checkout modal -->
+  <div class="modal" id="checkoutModal" hidden role="dialog" aria-labelledby="checkoutTitle" aria-modal="true">
+    <div class="modal__backdrop" id="closeCheckoutBackdrop"></div>
+    <div class="modal__panel">
+      <div class="modal__head">
+        <h2 id="checkoutTitle">Finalize seu pedido</h2>
+        <button class="icon-btn" id="closeCheckoutBtn" aria-label="Fechar checkout">&times;</button>
+      </div>
+      <form class="checkout-form" id="checkoutForm">
+        <fieldset class="checkout-fieldset">
+          <legend>Tipo de pedido</legend>
+          <label class="radio-card">
+            <input type="radio" name="orderType" value="delivery" checked />
+            <span>
+              <strong>Entrega</strong>
+              <small>20–35 min · R$ 3,99 (grátis acima de R$ 25)</small>
+            </span>
+          </label>
+          <label class="radio-card">
+            <input type="radio" name="orderType" value="pickup" />
+            <span>
+              <strong>Retirada</strong>
+              <small>15–20 min · Sem taxa</small>
+            </span>
+          </label>
+        </fieldset>
+
+        <div class="form-grid">
+          <label>
+            Nome completo
+            <input type="text" name="name" required placeholder="Maria Silva" />
+          </label>
+          <label>
+            Telefone
+            <input type="tel" name="phone" required placeholder="(11) 99999-9999" />
+          </label>
+        </div>
+
+        <label id="addressField">
+          Endereço de entrega
+          <input type="text" name="address" placeholder="Rua, número, bairro, cidade" />
+        </label>
+
+        <label>
+          Observações (opcional)
+          <textarea name="notes" rows="3" placeholder="Sem cebola, molho extra, código do portão…"></textarea>
+        </label>
+
+        <div class="checkout-total">
+          <span>Total do pedido</span>
+          <strong id="checkoutTotal">R$ 0,00</strong>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--full">Fazer pedido</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Success modal -->
+  <div class="modal" id="successModal" hidden role="dialog" aria-labelledby="successTitle" aria-modal="true">
+    <div class="modal__backdrop" id="closeSuccessBackdrop"></div>
+    <div class="modal__panel modal__panel--success">
+      <div class="success-icon">✓</div>
+      <h2 id="successTitle">Pedido realizado!</h2>
+      <p id="successMessage">Estamos preparando na chapa. Você receberá uma confirmação em breve.</p>
+      <p class="order-id" id="orderId"></p>
+      <button class="btn btn--primary btn--full" id="successDoneBtn">Voltar ao cardápio</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
