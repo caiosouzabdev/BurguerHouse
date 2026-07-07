@@ -1,3 +1,6 @@
+// Altere para o seu WhatsApp real: DDI + DDD + número, só dígitos (ex.: 5511999999999)
+const WHATSAPP_NUMBER = "5511999999999";
+
 const DELIVERY_FEE = 3.99;
 const FREE_DELIVERY_MIN = 25;
 
@@ -312,11 +315,9 @@ function closeCheckout() {
   document.body.style.overflow = "";
 }
 
-function openSuccess(orderNumber, orderType) {
+function openSuccess(orderNumber) {
   successMessage.textContent =
-    orderType === "delivery"
-      ? "Estamos preparando na chapa. Seu burger já vai sair para entrega!"
-      : "Estamos preparando na chapa. Passe aqui para retirar quando estiver pronto!";
+    "Seu pedido foi enviado pelo WhatsApp. Confirme a mensagem para finalizar — em seguida começamos a preparar!";
   orderIdEl.textContent = `Pedido #${orderNumber}`;
   successModal.hidden = false;
 }
@@ -334,6 +335,54 @@ function updateAddressField() {
 
 function generateOrderId() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+function buildWhatsAppMessage(order) {
+  const typeLabel = order.type === "delivery" ? "Entrega" : "Retirada";
+  const itemsText = order.items
+    .map((line) => `${line.qty}x ${line.name} — ${formatMoney(line.price * line.qty)}`)
+    .join("\n");
+
+  const lines = [
+    "🍔 *NOVO PEDIDO — Burger House*",
+    `Pedido #${order.id}`,
+    "",
+    `*Cliente:* ${order.customer.name}`,
+    `*Telefone:* ${order.customer.phone}`,
+    `*Tipo:* ${typeLabel}`,
+  ];
+
+  if (order.customer.address) {
+    lines.push(`*Endereço:* ${order.customer.address}`);
+  }
+
+  lines.push(
+    "",
+    "*Itens:*",
+    itemsText,
+    "",
+    `*Subtotal:* ${formatMoney(order.subtotal)}`
+  );
+
+  if (order.type === "delivery") {
+    const feeLabel =
+      order.deliveryFee === 0 ? "Grátis" : formatMoney(order.deliveryFee);
+    lines.push(`*Taxa de entrega:* ${feeLabel}`);
+  }
+
+  lines.push(`*Total:* ${formatMoney(order.total)}`);
+
+  if (order.customer.notes) {
+    lines.push("", `*Observações:* ${order.customer.notes}`);
+  }
+
+  return lines.join("\n");
+}
+
+function sendOrderToWhatsApp(order) {
+  const message = buildWhatsAppMessage(order);
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 categoryTabs.addEventListener("click", (event) => {
@@ -396,16 +445,14 @@ checkoutForm.addEventListener("submit", (event) => {
     total: getTotal(orderType),
   };
 
-  const orders = JSON.parse(localStorage.getItem("burger-house-orders") || "[]");
-  orders.push(order);
-  localStorage.setItem("burger-house-orders", JSON.stringify(orders));
+  sendOrderToWhatsApp(order);
 
   cart = [];
   saveCart();
   renderCart();
   checkoutForm.reset();
   closeCheckout();
-  openSuccess(order.id, orderType);
+  openSuccess(order.id);
 });
 
 renderMenu();
