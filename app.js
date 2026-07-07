@@ -1,5 +1,5 @@
 // Altere para o seu WhatsApp real: DDI + DDD + número, só dígitos (ex.: 5511999999999)
-const WHATSAPP_NUMBER = "5511999999999";
+const WHATSAPP_NUMBER = "5522998857007";
 
 const DELIVERY_FEE = 3.99;
 const FREE_DELIVERY_MIN = 25;
