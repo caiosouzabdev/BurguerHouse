@@ -1,3 +1,18 @@
+import { generatePixPayload } from "./lib/pix-core.js";
+import { renderPixQrCode } from "./lib/pix-qr.js";
+import {
+  buildOrderItems,
+  buildWhatsAppMessage,
+  buildWhatsAppUrl,
+  calculateDeliveryFee,
+  calculateSubtotal,
+  calculateTotal,
+  findMenuItem,
+  formatMoney,
+  getCartCount as countCartItems,
+  validateCheckout,
+} from "./lib/order.js";
+
 // Altere para o seu WhatsApp real: DDI + DDD + número, só dígitos (ex.: 5511999999999)
 const WHATSAPP_NUMBER = "5522998857007";
 
@@ -145,10 +160,6 @@ const pixKeyDisplay = document.getElementById("pixKeyDisplay");
 const checkoutError = document.getElementById("checkoutError");
 const pixQrCode = document.getElementById("pixQrCode");
 
-function formatMoney(amount) {
-  return amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 function loadCart() {
   try {
     const saved = localStorage.getItem("burger-house-cart");
@@ -163,28 +174,23 @@ function saveCart() {
 }
 
 function getMenuItem(id) {
-  return MENU.find((item) => item.id === id);
+  return findMenuItem(MENU, id);
 }
 
 function getSubtotal() {
-  return cart.reduce((sum, line) => {
-    const item = getMenuItem(line.id);
-    return sum + (item ? item.price * line.qty : 0);
-  }, 0);
+  return calculateSubtotal(cart, MENU);
 }
 
 function getDeliveryFee(orderType = "delivery") {
-  if (orderType === "pickup") return 0;
-  const subtotal = getSubtotal();
-  return subtotal >= FREE_DELIVERY_MIN ? 0 : DELIVERY_FEE;
+  return calculateDeliveryFee(getSubtotal(), orderType, DELIVERY_FEE, FREE_DELIVERY_MIN);
 }
 
 function getTotal(orderType = "delivery") {
-  return getSubtotal() + getDeliveryFee(orderType);
+  return calculateTotal(getSubtotal(), orderType, DELIVERY_FEE, FREE_DELIVERY_MIN);
 }
 
 function getCartCount() {
-  return cart.reduce((sum, line) => sum + line.qty, 0);
+  return countCartItems(cart);
 }
 
 function addToCart(id) {
@@ -429,53 +435,9 @@ function generateOrderId() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-function buildWhatsAppMessage(order) {
-  const typeLabel = order.type === "delivery" ? "Entrega" : "Retirada";
-  const itemsText = order.items
-    .map((line) => `${line.qty}x ${line.name} — ${formatMoney(line.price * line.qty)}`)
-    .join("\n");
-
-  const lines = [
-    "🍔 *NOVO PEDIDO — Burger House*",
-    `Pedido #${order.id}`,
-    "",
-    `*Cliente:* ${order.customer.name}`,
-    `*Telefone:* ${order.customer.phone}`,
-    `*Tipo:* ${typeLabel}`,
-  ];
-
-  if (order.customer.address) {
-    lines.push(`*Endereço:* ${order.customer.address}`);
-  }
-
-  lines.push(
-    "",
-    "*Itens:*",
-    itemsText,
-    "",
-    `*Subtotal:* ${formatMoney(order.subtotal)}`
-  );
-
-  if (order.type === "delivery") {
-    const feeLabel =
-      order.deliveryFee === 0 ? "Grátis" : formatMoney(order.deliveryFee);
-    lines.push(`*Taxa de entrega:* ${feeLabel}`);
-  }
-
-  lines.push(`*Total:* ${formatMoney(order.total)}`, "", "*Pagamento:* PIX");
-
-  if (order.customer.notes) {
-    lines.push("", `*Observações:* ${order.customer.notes}`);
-  }
-
-  lines.push("", "Enviei o comprovante do PIX em anexo.");
-
-  return lines.join("\n");
-}
-
 function sendOrderToWhatsApp(order) {
   const message = buildWhatsAppMessage(order);
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const url = buildWhatsAppUrl(WHATSAPP_NUMBER, message);
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
@@ -520,18 +482,18 @@ checkoutForm.addEventListener("submit", (event) => {
 
   const formData = new FormData(checkoutForm);
   const orderType = formData.get("orderType");
-  const name = String(formData.get("name") || "").trim();
-  const phone = String(formData.get("phone") || "").trim();
-  const address = String(formData.get("address") || "").trim();
+  const validation = validateCheckout({
+    name: formData.get("name"),
+    phone: formData.get("phone"),
+    orderType,
+    address: formData.get("address"),
+  });
 
-  if (!name || !phone) {
-    showCheckoutError("Preencha nome e telefone para continuar.");
-    return;
-  }
-
-  if (orderType === "delivery" && !address) {
-    showCheckoutError("Informe o endereço de entrega para continuar.");
-    document.querySelector('input[name="address"]')?.focus();
+  if (!validation.valid) {
+    showCheckoutError(validation.error);
+    if (orderType === "delivery") {
+      document.querySelector('input[name="address"]')?.focus();
+    }
     return;
   }
 
@@ -540,20 +502,10 @@ checkoutForm.addEventListener("submit", (event) => {
     createdAt: new Date().toISOString(),
     type: orderType,
     customer: {
-      name,
-      phone,
-      address: orderType === "delivery" ? address : null,
+      ...validation.customer,
       notes: formData.get("notes") || "",
     },
-    items: cart.map((line) => {
-      const item = getMenuItem(line.id);
-      return {
-        id: line.id,
-        name: item?.name,
-        qty: line.qty,
-        price: item?.price,
-      };
-    }),
+    items: buildOrderItems(cart, MENU),
     subtotal: getSubtotal(),
     deliveryFee: getDeliveryFee(orderType),
     total: getTotal(orderType),
