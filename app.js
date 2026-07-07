@@ -1,6 +1,13 @@
 // Altere para o seu WhatsApp real: DDI + DDD + número, só dígitos (ex.: 5511999999999)
 const WHATSAPP_NUMBER = "5522998857007";
 
+// Configuração PIX — use a mesma chave cadastrada no seu banco
+const PIX_CONFIG = {
+  key: "csb.dev@outlook.com.br",
+  merchantName: "Burger House",
+  merchantCity: "Rio das Ostras",
+};
+
 const DELIVERY_FEE = 3.99;
 const FREE_DELIVERY_MIN = 25;
 
@@ -110,6 +117,7 @@ const MENU = [
 
 let cart = loadCart();
 let activeCategory = "burgers";
+let pendingOrder = null;
 
 const menuGrid = document.getElementById("menuGrid");
 const categoryTabs = document.getElementById("categoryTabs");
@@ -125,11 +133,16 @@ const checkoutTotal = document.getElementById("checkoutTotal");
 const cartDrawer = document.getElementById("cartDrawer");
 const cartOverlay = document.getElementById("cartOverlay");
 const checkoutModal = document.getElementById("checkoutModal");
+const pixModal = document.getElementById("pixModal");
 const successModal = document.getElementById("successModal");
 const checkoutForm = document.getElementById("checkoutForm");
 const addressField = document.getElementById("addressField");
 const successMessage = document.getElementById("successMessage");
 const orderIdEl = document.getElementById("orderId");
+const pixAmount = document.getElementById("pixAmount");
+const pixCode = document.getElementById("pixCode");
+const pixKeyDisplay = document.getElementById("pixKeyDisplay");
+const pixQrCode = document.getElementById("pixQrCode");
 
 function formatMoney(amount) {
   return amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -312,12 +325,83 @@ function openCheckout() {
 
 function closeCheckout() {
   checkoutModal.hidden = true;
-  document.body.style.overflow = "";
+  if (pixModal.hidden && successModal.hidden) {
+    document.body.style.overflow = "";
+  }
+}
+
+function openPixPayment(order) {
+  pendingOrder = order;
+
+  const payload = generatePixPayload({
+    key: PIX_CONFIG.key,
+    merchantName: PIX_CONFIG.merchantName,
+    merchantCity: PIX_CONFIG.merchantCity,
+    amount: order.total,
+    txid: order.id,
+  });
+
+  pixAmount.textContent = formatMoney(order.total);
+  pixCode.value = payload;
+  pixKeyDisplay.textContent = PIX_CONFIG.key;
+
+  QRCode.toCanvas(
+    pixQrCode,
+    payload,
+    {
+      width: 220,
+      margin: 1,
+      color: { dark: "#000000", light: "#ffffff" },
+    },
+    (error) => {
+      if (error) {
+        console.error("Erro ao gerar QR Code PIX:", error);
+      }
+    }
+  );
+
+  checkoutModal.hidden = true;
+  pixModal.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closePix() {
+  pixModal.hidden = true;
+  if (checkoutModal.hidden && successModal.hidden) {
+    document.body.style.overflow = "";
+  }
+}
+
+function copyPixCode() {
+  pixCode.select();
+  pixCode.setSelectionRange(0, pixCode.value.length);
+  navigator.clipboard.writeText(pixCode.value).then(() => {
+    const btn = document.getElementById("copyPixBtn");
+    const original = btn.textContent;
+    btn.textContent = "Copiado!";
+    setTimeout(() => {
+      btn.textContent = original;
+    }, 2000);
+  });
+}
+
+function confirmPixPayment() {
+  if (!pendingOrder) return;
+
+  sendOrderToWhatsApp(pendingOrder);
+
+  cart = [];
+  saveCart();
+  renderCart();
+  checkoutForm.reset();
+  closePix();
+  openSuccess(pendingOrder.id);
+  pendingOrder = null;
 }
 
 function openSuccess(orderNumber) {
   successMessage.textContent =
-    "Seu pedido foi enviado pelo WhatsApp. Confirme a mensagem para finalizar — em seguida começamos a preparar!";
+    "Confirme o envio no WhatsApp e anexe o comprovante do PIX. Em seguida começamos a preparar seu pedido!";
   orderIdEl.textContent = `Pedido #${orderNumber}`;
   successModal.hidden = false;
 }
@@ -370,11 +454,13 @@ function buildWhatsAppMessage(order) {
     lines.push(`*Taxa de entrega:* ${feeLabel}`);
   }
 
-  lines.push(`*Total:* ${formatMoney(order.total)}`);
+  lines.push(`*Total:* ${formatMoney(order.total)}`, "", "*Pagamento:* PIX");
 
   if (order.customer.notes) {
     lines.push("", `*Observações:* ${order.customer.notes}`);
   }
+
+  lines.push("", "Enviei o comprovante do PIX em anexo.");
 
   return lines.join("\n");
 }
@@ -406,6 +492,10 @@ cartOverlay.addEventListener("click", closeCart);
 document.getElementById("checkoutBtn").addEventListener("click", openCheckout);
 document.getElementById("closeCheckoutBtn").addEventListener("click", closeCheckout);
 document.getElementById("closeCheckoutBackdrop").addEventListener("click", closeCheckout);
+document.getElementById("closePixBtn").addEventListener("click", closePix);
+document.getElementById("closePixBackdrop").addEventListener("click", closePix);
+document.getElementById("copyPixBtn").addEventListener("click", copyPixCode);
+document.getElementById("confirmPixBtn").addEventListener("click", confirmPixPayment);
 document.getElementById("closeSuccessBackdrop").addEventListener("click", closeSuccess);
 document.getElementById("successDoneBtn").addEventListener("click", closeSuccess);
 
@@ -445,14 +535,7 @@ checkoutForm.addEventListener("submit", (event) => {
     total: getTotal(orderType),
   };
 
-  sendOrderToWhatsApp(order);
-
-  cart = [];
-  saveCart();
-  renderCart();
-  checkoutForm.reset();
-  closeCheckout();
-  openSuccess(order.id);
+  openPixPayment(order);
 });
 
 renderMenu();

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 </head>
 <body>
   <header class="header">
@@ -193,8 +194,43 @@
           <strong id="checkoutTotal">R$ 0,00</strong>
         </div>
 
-        <button type="submit" class="btn btn--primary btn--full">Enviar pedido no WhatsApp</button>
+        <button type="submit" class="btn btn--primary btn--full">Continuar para pagamento PIX</button>
       </form>
+    </div>
+  </div>
+
+  <!-- PIX payment modal -->
+  <div class="modal" id="pixModal" hidden role="dialog" aria-labelledby="pixTitle" aria-modal="true">
+    <div class="modal__backdrop" id="closePixBackdrop"></div>
+    <div class="modal__panel modal__panel--pix">
+      <div class="modal__head">
+        <h2 id="pixTitle">Pague com PIX</h2>
+        <button class="icon-btn" id="closePixBtn" aria-label="Fechar pagamento">&times;</button>
+      </div>
+
+      <p class="pix-intro">Escaneie o QR Code ou copie o código abaixo. O valor já está preenchido.</p>
+
+      <div class="pix-amount">
+        <span>Total a pagar</span>
+        <strong id="pixAmount">R$ 0,00</strong>
+      </div>
+
+      <div class="pix-qr-wrap">
+        <canvas id="pixQrCode" aria-label="QR Code PIX"></canvas>
+      </div>
+
+      <div class="pix-copy">
+        <label for="pixCode">PIX copia e cola</label>
+        <div class="pix-copy__row">
+          <input id="pixCode" type="text" readonly />
+          <button type="button" class="btn btn--ghost btn--small" id="copyPixBtn">Copiar</button>
+        </div>
+      </div>
+
+      <p class="pix-key">Chave PIX: <strong id="pixKeyDisplay"></strong></p>
+      <p class="pix-hint">Após pagar, toque no botão abaixo para enviar o pedido pelo WhatsApp com o comprovante.</p>
+
+      <button type="button" class="btn btn--primary btn--full" id="confirmPixBtn">Já paguei — enviar pedido no WhatsApp</button>
     </div>
   </div>
 
@@ -204,12 +240,13 @@
     <div class="modal__panel modal__panel--success">
       <div class="success-icon">✓</div>
       <h2 id="successTitle">Pedido realizado!</h2>
-      <p id="successMessage">Seu pedido foi enviado pelo WhatsApp. Confirme a mensagem para finalizar.</p>
+      <p id="successMessage">Pagamento PIX registrado e pedido enviado pelo WhatsApp.</p>
       <p class="order-id" id="orderId"></p>
       <button class="btn btn--primary btn--full" id="successDoneBtn">Voltar ao cardápio</button>
     </div>
   </div>
 
+  <script src="pix.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
