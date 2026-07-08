@@ -12,6 +12,7 @@ const result = spawnSync(
     "tests/payment-status.test.js",
     "tests/mercadopago.test.js",
     "tests/payment-client.test.js",
+    "tests/restaurant-notification.test.js",
   ],
   { cwd: root, stdio: "inherit" }
 );

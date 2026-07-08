@@ -23,6 +23,9 @@ const sampleOrder = {
     phone: "22999887766",
     email: null,
   },
+  items: [{ qty: 1, name: "Classic Smash", price: 36.89 }],
+  subtotal: 36.89,
+  deliveryFee: 0,
 };
 
 describe("Mercado Pago order helpers", () => {
@@ -74,6 +77,7 @@ describe("Mercado Pago order helpers", () => {
       "https://example.com/.netlify/functions/mercadopago-webhook"
     );
     assert.equal(payload.metadata.order_id, "ABC123");
+    assert.match(payload.metadata.items_summary, /Classic Smash/);
   });
 
   it("maps Mercado Pago create response", () => {
@@ -123,7 +127,7 @@ describe("Mercado Pago order helpers", () => {
   it("returns UI messages for payment flow", () => {
     assert.match(getPixWaitingMessage({ loading: true }), /Gerando/);
     assert.match(getPixWaitingMessage({ failed: true }), /não concluído/i);
-    assert.match(getSuccessMessage(true), /automaticamente/i);
+    assert.match(getSuccessMessage(true), /restaurante/i);
     assert.match(getPixHint(true), /WhatsApp/);
     assert.match(getPixHint(false), /automaticamente/i);
   });

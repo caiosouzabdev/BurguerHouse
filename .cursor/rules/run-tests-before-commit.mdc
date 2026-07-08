@@ -12,7 +12,7 @@ Before creating any git commit in this project:
    - `.\scripts\test.ps1` (PowerShell)
    - `scripts\test.bat` (CMD)
    - `npm test` (only if npm is on PATH)
-2. Only commit if all 20 tests pass.
+2. Only commit if **all tests pass**.
 3. If tests fail, fix them first — do not commit broken code.
 4. Do not rely on GitHub Actions as the first check; local tests must pass first.
 

@@ -1,6 +1,6 @@
 import { generatePixPayload } from "./lib/pix-core.js";
 import { renderPixQrCode } from "./lib/pix-qr.js";
-import { createPixPayment, fetchPaymentStatus } from "./lib/payment-client.js";
+import { createPixPayment, fetchPaymentStatus, notifyRestaurant } from "./lib/payment-client.js";
 import {
   getPixHint,
   getSuccessMessage,
@@ -520,14 +520,24 @@ function copyPixCode() {
 function completeOrder(autoConfirmed = false) {
   if (!pendingOrder) return;
 
-  sendOrderToWhatsApp(pendingOrder);
+  const order = pendingOrder;
+  const paymentId = activePaymentId;
+
+  if (autoConfirmed) {
+    notifyRestaurant({ order, paymentId }).catch((error) => {
+      console.error("Erro ao notificar restaurante:", error);
+      sendOrderToWhatsApp(order);
+    });
+  } else {
+    sendOrderToWhatsApp(order);
+  }
 
   cart = [];
   saveCart();
   renderCart();
   checkoutForm.reset();
   closePix();
-  openSuccess(pendingOrder.id, autoConfirmed);
+  openSuccess(order.id, autoConfirmed);
   pendingOrder = null;
 }
 

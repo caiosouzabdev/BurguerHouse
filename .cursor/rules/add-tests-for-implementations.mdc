@@ -1,0 +1,51 @@
+---
+description: Add unit tests for every new feature or implementation in burger-house
+alwaysApply: true
+---
+
+# Add tests for every implementation
+
+Whenever you add or change behavior in this project, **add or update unit tests** in the same work session — do not leave new logic untested.
+
+## Required workflow
+
+1. **Implement** the feature.
+2. **Extract testable logic** into `lib/` when possible (keep `app.js` and Netlify functions thin).
+3. **Add tests** under `tests/` using Node's built-in test runner (`node:test` + `node:assert/strict`).
+4. **Register new test files** in `scripts/run-tests.mjs`.
+5. **Run** `./scripts/test.sh` (or `.\scripts\test.ps1`) and ensure **all tests pass** before committing.
+
+## What must be tested
+
+- Business rules (pricing, delivery fees, checkout validation)
+- Payment flow logic (PIX payload, Mercado Pago mapping, payment status)
+- Notification/message builders
+- API client helpers (use injectable `fetch` mocks)
+- Pure functions and edge cases (empty input, invalid data, failure paths)
+
+## What to avoid testing
+
+- Trivial one-liners with no logic
+- Full browser DOM rendering (extract logic instead)
+- External APIs for real (mock `fetch` in tests)
+
+## Test file conventions
+
+- Name files `tests/<area>.test.js`
+- Group with `describe()` blocks by module or feature
+- One clear assertion focus per `it()` when practical
+- Mirror the structure of `lib/` (e.g. `lib/mercadopago.js` → `tests/mercadopago.test.js`)
+
+## When modifying existing behavior
+
+- Update affected tests — do not only add new ones if old tests would break or become wrong.
+- If a bug fix has no test reproducing the bug, add one.
+
+## Definition of done
+
+A feature is **not done** until:
+
+- [ ] New/changed logic has unit tests
+- [ ] `scripts/run-tests.mjs` includes any new test files
+- [ ] All tests pass locally
+- [ ] Commit only after tests pass (see `run-tests-before-commit` rule)

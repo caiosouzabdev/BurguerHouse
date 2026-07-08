@@ -1,4 +1,6 @@
-exports.handler = async (event) => {
+import { notifyRestaurantOwner } from "../../lib/restaurant-notification.js";
+
+export async function handler(event) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method not allowed" };
   }
@@ -19,8 +21,30 @@ exports.handler = async (event) => {
     liveMode: payload?.live_mode,
   });
 
+  if (!paymentId) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ received: true, notified: false }),
+    };
+  }
+
+  const result = await notifyRestaurantOwner({
+    paymentId: String(paymentId),
+    accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN || null,
+    restaurantPhone:
+      process.env.RESTAURANT_WHATSAPP_NUMBER ||
+      process.env.WHATSAPP_NOTIFY_NUMBER ||
+      "",
+    callMeBotApiKey: process.env.CALLMEBOT_API_KEY || "",
+  });
+
   return {
     statusCode: 200,
-    body: JSON.stringify({ received: true }),
+    body: JSON.stringify({
+      received: true,
+      notified: result.sent,
+      reason: result.reason || null,
+      orderId: result.orderId || null,
+    }),
   };
-};
+}
