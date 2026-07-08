@@ -179,6 +179,11 @@
           </label>
         </div>
 
+        <label>
+          E-mail (opcional)
+          <input type="email" name="email" placeholder="maria@email.com" />
+        </label>
+
         <label id="addressField">
           Endereço de entrega
           <input type="text" name="address" placeholder="Rua, número, bairro, cidade" />
@@ -217,6 +222,11 @@
         <strong id="pixAmount">R$ 0,00</strong>
       </div>
 
+      <div class="pix-status" id="pixStatus" hidden>
+        <span class="pix-status__spinner" aria-hidden="true"></span>
+        <span id="pixStatusText">Aguardando confirmação do pagamento...</span>
+      </div>
+
       <div class="pix-qr-wrap" id="pixQrWrap">
         <div id="pixQrCode" aria-label="QR Code PIX"></div>
       </div>
@@ -229,10 +239,12 @@
         </div>
       </div>
 
-      <p class="pix-key">Chave PIX: <strong id="pixKeyDisplay"></strong></p>
-      <p class="pix-hint">Após pagar, toque no botão abaixo para enviar o pedido pelo WhatsApp com o comprovante.</p>
+      <p class="pix-key" id="pixKeyRow">Chave PIX: <strong id="pixKeyDisplay"></strong></p>
+      <p class="pix-hint" id="pixHint">Após pagar, o pedido será confirmado automaticamente.</p>
 
-      <button type="button" class="btn btn--primary btn--full" id="confirmPixBtn">Já paguei — enviar pedido no WhatsApp</button>
+      <button type="button" class="btn btn--ghost btn--full" id="confirmPixBtn" hidden>
+        Já paguei — enviar pedido no WhatsApp
+      </button>
     </div>
   </div>
 
@@ -242,7 +254,7 @@
     <div class="modal__panel modal__panel--success">
       <div class="success-icon">✓</div>
       <h2 id="successTitle">Pedido realizado!</h2>
-      <p id="successMessage">Pagamento PIX registrado e pedido enviado pelo WhatsApp.</p>
+      <p id="successMessage">Pagamento confirmado! Seu pedido foi enviado pelo WhatsApp.</p>
       <p class="order-id" id="orderId"></p>
       <button class="btn btn--primary btn--full" id="successDoneBtn">Voltar ao cardápio</button>
     </div>

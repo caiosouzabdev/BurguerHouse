@@ -1,5 +1,16 @@
 import { generatePixPayload } from "./lib/pix-core.js";
 import { renderPixQrCode } from "./lib/pix-qr.js";
+import { createPixPayment, fetchPaymentStatus } from "./lib/payment-client.js";
+import {
+  getPixHint,
+  getSuccessMessage,
+  isStaticPaymentMode,
+} from "./lib/mercadopago.js";
+import {
+  isPaymentComplete,
+  isPaymentFailed,
+  shouldKeepPolling,
+} from "./lib/payment-status.js";
 import {
   buildOrderItems,
   buildWhatsAppMessage,
@@ -133,6 +144,8 @@ const MENU = [
 let cart = loadCart();
 let activeCategory = "burgers";
 let pendingOrder = null;
+let paymentPollTimer = null;
+let activePaymentId = null;
 
 const menuGrid = document.getElementById("menuGrid");
 const categoryTabs = document.getElementById("categoryTabs");
@@ -159,6 +172,11 @@ const pixCode = document.getElementById("pixCode");
 const pixKeyDisplay = document.getElementById("pixKeyDisplay");
 const checkoutError = document.getElementById("checkoutError");
 const pixQrCode = document.getElementById("pixQrCode");
+const pixStatus = document.getElementById("pixStatus");
+const pixStatusText = document.getElementById("pixStatusText");
+const pixKeyRow = document.getElementById("pixKeyRow");
+const pixHint = document.getElementById("pixHint");
+const confirmPixBtn = document.getElementById("confirmPixBtn");
 
 function loadCart() {
   try {
@@ -338,33 +356,131 @@ function closeCheckout() {
   }
 }
 
-function openPixPayment(order) {
-  pendingOrder = order;
+function stopPaymentPolling() {
+  if (paymentPollTimer) {
+    clearInterval(paymentPollTimer);
+    paymentPollTimer = null;
+  }
+}
 
-  let payload;
-  try {
-    payload = generatePixPayload({
-      key: PIX_CONFIG.key,
-      merchantName: PIX_CONFIG.merchantName,
-      merchantCity: PIX_CONFIG.merchantCity,
-      amount: order.total,
-      txid: order.id,
-    });
-  } catch (error) {
-    console.error("Erro ao gerar código PIX:", error);
-    showCheckoutError("Não foi possível gerar o PIX. Verifique a configuração da chave PIX.");
+function setPixWaiting(isWaiting, message = "Aguardando confirmação do pagamento...") {
+  pixStatus.hidden = !isWaiting;
+  pixStatusText.textContent = message;
+}
+
+function setManualPixFallback(enabled) {
+  confirmPixBtn.hidden = !enabled;
+  pixKeyRow.hidden = !enabled;
+  pixHint.textContent = getPixHint(enabled);
+}
+
+function renderPixQrFromProvider({ qrCode, qrCodeBase64 }) {
+  pixQrCode.innerHTML = "";
+
+  if (qrCodeBase64) {
+    const img = document.createElement("img");
+    img.src = `data:image/png;base64,${qrCodeBase64}`;
+    img.alt = "QR Code PIX";
+    img.width = 220;
+    img.height = 220;
+    pixQrCode.appendChild(img);
     return;
   }
 
-  pixAmount.textContent = formatMoney(order.total);
+  if (qrCode) {
+    renderPixQrCode(pixQrCode, qrCode);
+  }
+}
+
+function openStaticPixPayment(order) {
+  const payload = generatePixPayload({
+    key: PIX_CONFIG.key,
+    merchantName: PIX_CONFIG.merchantName,
+    merchantCity: PIX_CONFIG.merchantCity,
+    amount: order.total,
+    txid: order.id,
+  });
+
   pixCode.value = payload;
   pixKeyDisplay.textContent = PIX_CONFIG.key;
+  renderPixQrCode(pixQrCode, payload);
+  setPixWaiting(false);
+  setManualPixFallback(true);
+}
+
+async function startPaymentPolling(paymentId) {
+  stopPaymentPolling();
+  activePaymentId = paymentId;
+  setPixWaiting(true);
+
+  const poll = async () => {
+    try {
+      const result = await fetchPaymentStatus(paymentId);
+
+      if (isPaymentComplete(result.status)) {
+        stopPaymentPolling();
+        completeOrder(true);
+        return;
+      }
+
+      if (isPaymentFailed(result.status)) {
+        stopPaymentPolling();
+        setPixWaiting(true, "Pagamento não concluído. Gere um novo pedido ou tente novamente.");
+        setManualPixFallback(true);
+        return;
+      }
+
+      if (!shouldKeepPolling(result.status)) {
+        setPixWaiting(true, "Aguardando atualização do pagamento...");
+      }
+    } catch (error) {
+      console.error("Erro ao verificar pagamento:", error);
+    }
+  };
+
+  await poll();
+  paymentPollTimer = setInterval(poll, 3000);
+}
+
+async function openPixPayment(order) {
+  pendingOrder = order;
+  activePaymentId = null;
+
+  pixAmount.textContent = formatMoney(order.total);
+  pixCode.value = "";
+  pixQrCode.innerHTML = "";
+  setManualPixFallback(false);
+  setPixWaiting(true, "Gerando pagamento PIX...");
 
   checkoutModal.hidden = true;
   pixModal.hidden = false;
   document.body.style.overflow = "hidden";
 
-  renderPixQrCode(pixQrCode, payload);
+  try {
+    const result = await createPixPayment(order);
+
+    if (isStaticPaymentMode(result)) {
+      openStaticPixPayment(order);
+      return;
+    }
+
+    pixCode.value = result.qrCode || "";
+    pixKeyDisplay.textContent = "Mercado Pago";
+    renderPixQrFromProvider(result);
+    setManualPixFallback(false);
+    await startPaymentPolling(result.paymentId);
+  } catch (error) {
+    console.error("Erro ao criar pagamento PIX:", error);
+    try {
+      openStaticPixPayment(order);
+      setPixWaiting(false);
+    } catch (staticError) {
+      console.error("Erro ao gerar PIX estático:", staticError);
+      closePix();
+      checkoutModal.hidden = false;
+      showCheckoutError("Não foi possível gerar o PIX. Tente novamente em instantes.");
+    }
+  }
 }
 
 function showCheckoutError(message) {
@@ -380,6 +496,8 @@ function clearCheckoutError() {
 }
 
 function closePix() {
+  stopPaymentPolling();
+  activePaymentId = null;
   pixModal.hidden = true;
   if (checkoutModal.hidden && successModal.hidden) {
     document.body.style.overflow = "";
@@ -399,7 +517,7 @@ function copyPixCode() {
   });
 }
 
-function confirmPixPayment() {
+function completeOrder(autoConfirmed = false) {
   if (!pendingOrder) return;
 
   sendOrderToWhatsApp(pendingOrder);
@@ -409,13 +527,16 @@ function confirmPixPayment() {
   renderCart();
   checkoutForm.reset();
   closePix();
-  openSuccess(pendingOrder.id);
+  openSuccess(pendingOrder.id, autoConfirmed);
   pendingOrder = null;
 }
 
-function openSuccess(orderNumber) {
-  successMessage.textContent =
-    "Confirme o envio no WhatsApp e anexe o comprovante do PIX. Em seguida começamos a preparar seu pedido!";
+function confirmPixPayment() {
+  completeOrder(false);
+}
+
+function openSuccess(orderNumber, autoConfirmed = false) {
+  successMessage.textContent = getSuccessMessage(autoConfirmed);
   orderIdEl.textContent = `Pedido #${orderNumber}`;
   successModal.hidden = false;
 }
@@ -503,6 +624,7 @@ checkoutForm.addEventListener("submit", (event) => {
     type: orderType,
     customer: {
       ...validation.customer,
+      email: String(formData.get("email") || "").trim() || null,
       notes: formData.get("notes") || "",
     },
     items: buildOrderItems(cart, MENU),
